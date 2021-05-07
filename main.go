@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/google/go-github/v35/github"
-	"github.com/joho/godotenv"
 )
 
 func handleNote(w http.ResponseWriter, req *http.Request) {
@@ -16,12 +14,12 @@ func handleNote(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	err := godotenv.Load()
-
-	if err != nil {
-		//TODO: DO not panic.
-		log.Panic(err)
-	}
+	// err := godotenv.Load()
+	//
+	// if err != nil {
+	// 	//TODO: DO not panic.
+	// 	log.Panic(err)
+	// }
 	port := os.Getenv("PORT")
 	fmt.Println("PORT is", port)
 
