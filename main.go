@@ -28,7 +28,7 @@ func main() {
 	http.HandleFunc("/handleNote", handleNote)
 
 	//TODO: Figure out how to read env for port number.
-	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+	http.ListenAndServe(":"+port, nil)
 
 	_ = github.NewClient(nil)
 }
