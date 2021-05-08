@@ -60,9 +60,11 @@ func handleNote(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if containsIssueCmd(body.Data.Text) {
+			log.Println("True clause contains #issue")
 			// Create the github issue.
 			fmt.Fprintf(w, "Yo that's a cmd")
 		} else {
+			log.Println("False clause doesn't contain #issue")
 			fmt.Fprintf(w, body.EventName)
 		}
 
