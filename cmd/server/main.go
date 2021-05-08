@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/google/go-github/v35/github"
@@ -36,18 +37,37 @@ type FSNoteCreatedReqBody struct {
 	} `json:"data"`
 }
 
-func handleNoteHandler(w http.ResponseWriter, req *http.Request) {
+// containsIssueCmd determines if the note text contains the string #issue which indicates this note should create an issue against the site repo.
+func containsIssueCmd(text string) bool {
+	matchIssueCmd := `\W(\#(issue)+\b)`
+
+	match, err := regexp.MatchString(matchIssueCmd, text)
+	if err != nil {
+		log.Panicln("error determining if note text contains issue command", err)
+	}
+
+	return match
+}
+
+func handleNote(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
-	case "GET":
-		fmt.Fprintf(w, "handleNoteHandler\n")
 	case "POST":
 		decoder := json.NewDecoder(req.Body)
 		var body FSNoteCreatedReqBody
 		err := decoder.Decode(&body)
 		if err != nil {
-			panic(err)
+			log.Panicln("error decoding request body", err)
 		}
-		fmt.Fprintf(w, body.EventName)
+
+		if containsIssueCmd(body.Data.Text) {
+			// Create the github issue.
+			fmt.Fprintf(w, "Yo that's a cmd")
+		} else {
+			fmt.Fprintf(w, body.EventName)
+		}
+
+	default:
+		fmt.Fprintf(w, "This application only supports POST requests, please try again :)\n")
 	}
 
 }
@@ -68,7 +88,7 @@ func main() {
 
 	// Set up HTTP Request Handlers.
 	// TODO: Handle errors here better and defer closing the connection if needed.
-	http.HandleFunc("/handleNote", handleNoteHandler)
+	http.HandleFunc("/handleNote", handleNote)
 
 	http.ListenAndServe(":"+port, nil)
 
