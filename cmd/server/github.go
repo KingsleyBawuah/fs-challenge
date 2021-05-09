@@ -111,7 +111,7 @@ func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl
 
 	issueBodyPtr := issueBody.String()
 
-	_, _, err := githubClient.Issues.CreateComment(ctx, issue.Repository.Owner.String(), issue.Repository.String(), *issue.Number, &github.IssueComment{
+	_, _, err := githubClient.Issues.CreateComment(ctx, issue.Repository.Owner.String(), issue.Repository.String(), issue.GetNumber(), &github.IssueComment{
 		Body: &issueBodyPtr,
 	})
 	if err != nil {
