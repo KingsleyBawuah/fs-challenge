@@ -33,7 +33,7 @@ Page where error occurred:
 
 
 
-_{{if .IsComment}} Command {{else}} Issue {{end}}! created automatically from a note in Fullstory using the #issue command by the author: {{.Author}}_
+_{{if .IsComment}}Comment {{else}} Issue {{end}}created automatically from a note in Fullstory using the #issue command by the author: {{.Author}}_
 `)
 
 	if err != nil {
@@ -76,6 +76,8 @@ func createGithubIssue(ctx context.Context, title, sessionUrl, pageUrl, noteText
 // Determine if a issue already exists for a specified session ID, if so return it.
 func inquireExistingIssue(ctx context.Context, sessionId string) (*github.Issue, error) {
 	issueList, _, err := githubClient.Issues.List(ctx, true, &github.IssueListOptions{})
+	log.Printf("Issue List %+v\\n", issueList)
+
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +86,7 @@ func inquireExistingIssue(ctx context.Context, sessionId string) (*github.Issue,
 
 	for _, issue := range issueList {
 		if strings.Contains(*issue.Title, sessionId) {
+			log.Println("Existing issue found with a matching session ID")
 			existingIssue = issue
 		}
 	}
