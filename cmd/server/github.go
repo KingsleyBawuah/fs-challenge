@@ -117,11 +117,11 @@ func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl
 		return err
 	}
 
-	log.Println("repo owner", issue.Repository.Owner.String())
+	log.Println("repo owner", *issue.Repository.Owner.Name)
 	log.Println("repo string", *issue.Repository.Name)
 	log.Println("issue number", issue.GetNumber())
 
-	_, _, err = githubClient.Issues.CreateComment(ctx, issue.Repository.Owner.String(), *issue.Repository.Name, issue.GetNumber(), &github.IssueComment{
+	_, _, err = githubClient.Issues.CreateComment(ctx, *issue.Repository.Owner.Name, *issue.Repository.Name, issue.GetNumber(), &github.IssueComment{
 		ID:                nil,
 		NodeID:            nil,
 		Body:              github.String(issueBodyPtr),
