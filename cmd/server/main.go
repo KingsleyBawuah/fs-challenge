@@ -66,7 +66,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/handleNoteRequest", handleNoteRequest)
+	mux.HandleFunc("/handleNote", handleNoteRequest)
 
 	log.Printf("Server started at port %s", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
@@ -103,7 +103,7 @@ _Issue created automatically from a note in Fullstory using the #issue command b
 		Labels: &labels,
 	}
 
-	_, _, err := githubClient.Issues.Create(ctx, "FS-Bot", "MovieSearch", issueReq)
+	_, _, err := githubClient.Issues.Create(ctx, "KingsleyBawuah", "MovieSearch", issueReq)
 	if err != nil {
 		return err
 	}
