@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"strings"
 	"text/template"
@@ -91,7 +92,6 @@ func inquireExistingIssue(ctx context.Context, sessionId string) (*github.Issue,
 
 	for _, issue := range issueList {
 		if strings.Contains(*issue.Title, sessionId) {
-			log.Println("Existing issue found with a matching session ID")
 			existingIssue = issue
 		}
 	}
@@ -117,7 +117,11 @@ func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl
 		return err
 	}
 
-	_, _, err = githubClient.Issues.CreateComment(ctx, issue.Repository.Owner.String(), issue.Repository.String(), issue.GetNumber(), &github.IssueComment{
+	fmt.Println("repo owner", issue.Repository.Owner.String())
+	fmt.Println("repo string", issue.Repository.Name)
+	fmt.Println("issue number", issue.GetNumber())
+
+	_, _, err = githubClient.Issues.CreateComment(ctx, issue.Repository.Owner.String(), *issue.Repository.Name, issue.GetNumber(), &github.IssueComment{
 		ID:                nil,
 		NodeID:            nil,
 		Body:              &issueBodyPtr,
