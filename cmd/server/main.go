@@ -87,13 +87,13 @@ func createGithubIssue(ctx context.Context, title, sessionUrl, noteText, author 
 	labels := []string{"bug", "auto-generated", "bot", "fullstory"}
 
 	body := fmt.Sprintf(`
-	###**Note Text:** 
+### Note Text: 
 	%s
 
-	### Link to session: 
+### Link to session: 
 	%s
 
-	_Issue created automatically from a note in Fullstory using the #issue command by the author: %s_
+_Issue created automatically from a note in Fullstory using the #issue command by the author: %s_
 `, noteText, sessionUrl, author)
 
 	issueReq := &github.IssueRequest{
