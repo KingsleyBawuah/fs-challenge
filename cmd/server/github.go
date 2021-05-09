@@ -111,28 +111,10 @@ func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl
 
 	issueBodyPtr := issueBody.String()
 
-	user, _, err := githubClient.Users.Get(ctx, "")
-	if err != nil {
-		log.Println("error fetching user", err)
-		return err
-	}
-
-	log.Println("repo owner", github.Stringify(issue.Repository.Owner.Name))
-	log.Println("repo string", github.Stringify(issue.Repository.Name))
 	log.Println("issue number", issue.GetNumber())
 
-	_, _, err = githubClient.Issues.CreateComment(ctx, github.Stringify(issue.Repository.Owner.Name), github.Stringify(issue.Repository.Name), issue.GetNumber(), &github.IssueComment{
-		ID:                nil,
-		NodeID:            nil,
-		Body:              github.String(issueBodyPtr),
-		User:              user,
-		Reactions:         nil,
-		CreatedAt:         nil,
-		UpdatedAt:         nil,
-		AuthorAssociation: nil,
-		URL:               nil,
-		HTMLURL:           nil,
-		IssueURL:          nil,
+	_, _, err := githubClient.Issues.CreateComment(ctx, GithubUsername, GithubRepoName, issue.GetNumber(), &github.IssueComment{
+		Body: github.String(issueBodyPtr),
 	})
 	if err != nil {
 		log.Println("error creating comment on issue", err)
