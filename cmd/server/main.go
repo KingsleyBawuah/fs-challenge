@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v35/github"
@@ -135,8 +136,10 @@ func handleNote(ctx context.Context, reqBody io.ReadCloser) error {
 
 	if containsIssueCmd(body.Data.Text) {
 		log.Println("True clause, contains #issue")
+		// Hacky way of grabbing the "sessionID" from the sessionUrl. I'm not the biggest fan of this approach of splitting a string that I don't control.
+		sessionId := strings.Split(body.Data.SessionUrl, "/")[6]
 		// Create the github issue.
-		if err := createGithubIssue(ctx, fmt.Sprintf("Error in session %s", body.Data.ID), body.Data.ShareLink, body.Data.PageInfo.PageUrl, body.Data.Text, body.Data.Author); err != nil {
+		if err := createGithubIssue(ctx, fmt.Sprintf("Error in session %s", sessionId), body.Data.SessionUrl, body.Data.PageInfo.PageUrl, body.Data.Text, body.Data.Author); err != nil {
 			log.Println("error creating github issue", err)
 			return err
 		}
