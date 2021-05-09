@@ -11,38 +11,12 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/google/go-github/v35/github"
 	"golang.org/x/oauth2"
 )
 
 var githubClient *github.Client
-
-// https://developer.fullstory.com/note-created
-type FSNoteCreatedReqBody struct {
-	EventName string `json:"eventName"`
-	Version   int    `json:"version"`
-	Data      struct {
-		ID         string    `json:"id"`
-		Created    time.Time `json:"created"`
-		Author     string    `json:"author"`
-		Text       string    `json:"text"`
-		SessionUrl string    `json:"sessionUrl"`
-		UserUrl    string    `json:"userUrl"`
-		ShareLink  string    `json:"shareLink"`
-		PageInfo   struct {
-			PageUrl    string `json:"pageUrl"`
-			Ipaddress  string `json:"ipAddress"`
-			Useragent  string `json:"userAgent"`
-			Referrer   string `json:"referrer"`
-			Country    string `json:"country"`
-			PageHeight int    `json:"pageHeight"`
-			PageWidth  int    `json:"pageWidth"`
-		} `json:"pageInfo"`
-		NotedTime time.Time `json:"notedTime"`
-	} `json:"data"`
-}
 
 func main() {
 	ctx := context.Background()
@@ -67,10 +41,27 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/handleNote", handleNoteRequest)
+	mux.HandleFunc("/handleNote", noteRequestHandler)
 
 	log.Printf("Server started at port %s", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
+}
+
+func noteRequestHandler(w http.ResponseWriter, req *http.Request) {
+	ctx := context.Background()
+
+	// If I had more time this is where I would validate the request actually comes from Fullstory.
+
+	switch req.Method {
+	case "POST":
+		if err := handleNote(ctx, req.Body); err != nil {
+			log.Panicln("error handling note request", err)
+		}
+		w.WriteHeader(http.StatusOK)
+	default:
+		fmt.Fprintf(w, "This application only supports POST requests, please try again :)\n")
+	}
+
 }
 
 // containsIssueCmd determines if the note text contains the string #issue which indicates this note should create an issue against the site repo.
@@ -85,49 +76,10 @@ func containsIssueCmd(text string) bool {
 	return match
 }
 
-func createGithubIssue(ctx context.Context, title, sessionUrl, pageUrl, noteText, author string) error {
-	labels := []string{"bug", "auto-generated", "bot", "fullstory"}
-
-	body := fmt.Sprintf(`
-### Note Text: 
-	%s
-
-### Relevant Links: 
-
-Session Url:
-- %s
-
-Page where error occured:
-- %s
-
-
-
-
-_Issue created automatically from a note in Fullstory using the #issue command by the author: %s_
-`, noteText, sessionUrl, pageUrl, author)
-
-	issueReq := &github.IssueRequest{
-		Title:  &title,
-		Body:   &body,
-		Labels: &labels,
-	}
-
-	_, _, err := githubClient.Issues.Create(ctx, "KingsleyBawuah", "MovieSearch", issueReq)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Determine if an issue already exists for this session.
-func inquireExistingIssue(issueIdentifier string) bool {
-	return false
-}
-
 func handleNote(ctx context.Context, reqBody io.ReadCloser) error {
 	decoder := json.NewDecoder(reqBody)
 	var body FSNoteCreatedReqBody
+
 	err := decoder.Decode(&body)
 	if err != nil {
 		log.Println("error decoding request body", err)
@@ -135,34 +87,29 @@ func handleNote(ctx context.Context, reqBody io.ReadCloser) error {
 	}
 
 	if containsIssueCmd(body.Data.Text) {
-		log.Println("True clause, contains #issue")
 		// Hacky way of grabbing the "sessionID" from the sessionUrl. I'm not the biggest fan of this approach of splitting a string that I don't control.
 		sessionId := strings.Split(body.Data.SessionUrl, "/")[6]
-		// Create the github issue.
-		if err := createGithubIssue(ctx, fmt.Sprintf("Error in session %s", sessionId), body.Data.SessionUrl, body.Data.PageInfo.PageUrl, body.Data.Text, body.Data.Author); err != nil {
-			log.Println("error creating github issue", err)
+
+		// Check for an existing issue and comment on it.
+		potentialExistingIssue, err := inquireExistingIssue(ctx, sessionId)
+		if err != nil {
+			log.Println("error in inquireExistingIssue", err)
 			return err
 		}
-
+		if potentialExistingIssue != nil {
+			if err := commentOnExistingIssue(ctx, potentialExistingIssue, body.Data.SessionUrl, body.Data.PageInfo.PageUrl, body.Data.Text, body.Data.Author); err != nil {
+				log.Println("error creating comment on existing github issue", err)
+				return err
+			}
+		} else {
+			// Create the new github issue.
+			if err := createGithubIssue(ctx, fmt.Sprintf("Error in session %s", sessionId), body.Data.SessionUrl, body.Data.PageInfo.PageUrl, body.Data.Text, body.Data.Author); err != nil {
+				log.Println("error creating github issue", err)
+				return err
+			}
+		}
 	}
 	return nil
-}
-
-func handleNoteRequest(w http.ResponseWriter, req *http.Request) {
-	ctx := context.Background()
-
-	// Validate secret value
-	// validateSecret(req.)
-	switch req.Method {
-	case "POST":
-		if err := handleNote(ctx, req.Body); err != nil {
-			log.Panicln("error handling note request", err)
-		}
-		w.WriteHeader(http.StatusOK)
-	default:
-		fmt.Fprintf(w, "This application only supports POST requests, please try again :)\n")
-	}
-
 }
 
 func envMust(envVar string) (string, error) {
@@ -172,7 +119,3 @@ func envMust(envVar string) (string, error) {
 		return v, nil
 	}
 }
-
-// func validateRequest(secret string) (bool, error) {
-//
-// }
