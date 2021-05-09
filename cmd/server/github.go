@@ -100,6 +100,7 @@ func inquireExistingIssue(ctx context.Context, sessionId string) (*github.Issue,
 }
 
 func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl, pageUrl, noteText, author string) error {
+	log.Printf("issue struct %+v\\n", issue)
 	issueBody := &IssueBody{
 		NoteText:   noteText,
 		SessionUrl: sessionUrl,
@@ -114,6 +115,7 @@ func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl
 		Body: &issueBodyPtr,
 	})
 	if err != nil {
+		log.Println("error creating comment on issue", err)
 		return err
 	}
 	return nil
