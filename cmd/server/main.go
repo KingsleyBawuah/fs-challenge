@@ -84,18 +84,26 @@ func containsIssueCmd(text string) bool {
 	return match
 }
 
-func createGithubIssue(ctx context.Context, title, sessionUrl, noteText, author string) error {
+func createGithubIssue(ctx context.Context, title, sessionUrl, pageUrl, noteText, author string) error {
 	labels := []string{"bug", "auto-generated", "bot", "fullstory"}
 
 	body := fmt.Sprintf(`
 ### Note Text: 
 	%s
 
-### Link to session: 
-%s
+### Relevant Links: 
+
+Session Url:
+- %s
+
+Page where error occured:
+- %s
+
+
+
 
 _Issue created automatically from a note in Fullstory using the #issue command by the author: %s_
-`, noteText, sessionUrl, author)
+`, noteText, sessionUrl, pageUrl, author)
 
 	issueReq := &github.IssueRequest{
 		Title:  &title,
@@ -128,7 +136,7 @@ func handleNote(ctx context.Context, reqBody io.ReadCloser) error {
 	if containsIssueCmd(body.Data.Text) {
 		log.Println("True clause, contains #issue")
 		// Create the github issue.
-		if err := createGithubIssue(ctx, fmt.Sprintf("Error in session %s", body.Data.ID), body.Data.ShareLink, body.Data.Text, body.Data.Author); err != nil {
+		if err := createGithubIssue(ctx, fmt.Sprintf("Error in session %s", body.Data.ID), body.Data.ShareLink, body.Data.PageInfo.PageUrl, body.Data.Text, body.Data.Author); err != nil {
 			log.Println("error creating github issue", err)
 			return err
 		}
@@ -139,6 +147,9 @@ func handleNote(ctx context.Context, reqBody io.ReadCloser) error {
 
 func handleNoteRequest(w http.ResponseWriter, req *http.Request) {
 	ctx := context.Background()
+
+	// Validate secret value
+	// validateSecret(req.)
 	switch req.Method {
 	case "POST":
 		if err := handleNote(ctx, req.Body); err != nil {
@@ -158,3 +169,7 @@ func envMust(envVar string) (string, error) {
 		return v, nil
 	}
 }
+
+// func validateRequest(secret string) (bool, error) {
+//
+// }
