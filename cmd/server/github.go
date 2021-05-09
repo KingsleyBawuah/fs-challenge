@@ -10,6 +10,11 @@ import (
 	"github.com/google/go-github/v35/github"
 )
 
+const (
+	GithubUsername = "KingsleyBawuah"
+	GithubRepoName = "MovieSearch"
+)
+
 type IssueBody struct {
 	NoteText   string
 	SessionUrl string
@@ -33,7 +38,7 @@ Page where error occurred:
 
 
 
-_{{if .IsComment}}Comment {{else}} Issue {{end}}created automatically from a note in Fullstory using the #issue command by the author: {{.Author}}_
+_{{if .IsComment}}Comment {{else}}Issue {{end}}created automatically from a note in Fullstory using the #issue command by the author: {{.Author}}_
 `)
 
 	if err != nil {
@@ -65,7 +70,7 @@ func createGithubIssue(ctx context.Context, title, sessionUrl, pageUrl, noteText
 		Labels: &labels,
 	}
 
-	_, _, err := githubClient.Issues.Create(ctx, "KingsleyBawuah", "MovieSearch", issueReq)
+	_, _, err := githubClient.Issues.Create(ctx, GithubUsername, GithubRepoName, issueReq)
 	if err != nil {
 		return err
 	}
@@ -75,7 +80,7 @@ func createGithubIssue(ctx context.Context, title, sessionUrl, pageUrl, noteText
 
 // Determine if a issue already exists for a specified session ID, if so return it.
 func inquireExistingIssue(ctx context.Context, sessionId string) (*github.Issue, error) {
-	issueList, _, err := githubClient.Issues.List(ctx, true, &github.IssueListOptions{})
+	issueList, _, err := githubClient.Issues.ListByRepo(ctx, GithubUsername, GithubRepoName, &github.IssueListByRepoOptions{})
 	log.Printf("Issue List %+v\\n", issueList)
 
 	if err != nil {

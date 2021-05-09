@@ -50,8 +50,6 @@ func main() {
 func noteRequestHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := context.Background()
 
-	// If I had more time this is where I would validate the request actually comes from Fullstory.
-
 	switch req.Method {
 	case "POST":
 		if err := handleNote(ctx, req.Body); err != nil {
