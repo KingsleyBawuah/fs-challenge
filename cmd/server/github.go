@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"log"
 	"strings"
 	"text/template"
@@ -101,6 +100,7 @@ func inquireExistingIssue(ctx context.Context, sessionId string) (*github.Issue,
 
 func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl, pageUrl, noteText, author string) error {
 	log.Printf("issue struct %+v\\n", issue)
+
 	issueBody := &IssueBody{
 		NoteText:   noteText,
 		SessionUrl: sessionUrl,
@@ -117,14 +117,14 @@ func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl
 		return err
 	}
 
-	fmt.Println("repo owner", issue.Repository.Owner.String())
-	fmt.Println("repo string", issue.Repository.Name)
-	fmt.Println("issue number", issue.GetNumber())
+	log.Println("repo owner", issue.Repository.Owner.String())
+	log.Println("repo string", *issue.Repository.Name)
+	log.Println("issue number", issue.GetNumber())
 
 	_, _, err = githubClient.Issues.CreateComment(ctx, issue.Repository.Owner.String(), *issue.Repository.Name, issue.GetNumber(), &github.IssueComment{
 		ID:                nil,
 		NodeID:            nil,
-		Body:              &issueBodyPtr,
+		Body:              github.String(issueBodyPtr),
 		User:              user,
 		Reactions:         nil,
 		CreatedAt:         nil,
