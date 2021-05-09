@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -43,9 +44,9 @@ type FSNoteCreatedReqBody struct {
 }
 
 func main() {
-	// Set up Github Client
 	ctx := context.Background()
 
+	// Set up Github Client
 	githubToken, err := envMust("GITHUB_TOKEN")
 	if err != nil {
 		os.Exit(1)
@@ -65,7 +66,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/handleNote", handleNote)
+	mux.HandleFunc("/handleNoteRequest", handleNoteRequest)
 
 	log.Printf("Server started at port %s", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), mux))
@@ -91,20 +92,18 @@ func createGithubIssue(ctx context.Context, title, sessionUrl, noteText, author 
 	%s
 
 ### Link to session: 
-	%s
+%s
 
 _Issue created automatically from a note in Fullstory using the #issue command by the author: %s_
 `, noteText, sessionUrl, author)
 
 	issueReq := &github.IssueRequest{
-		Title:     &title,
-		Body:      &body,
-		Labels:    &labels,
-		Assignee:  nil,
-		Assignees: nil,
+		Title:  &title,
+		Body:   &body,
+		Labels: &labels,
 	}
 
-	_, _, err := githubClient.Issues.Create(ctx, "KingsleyBawuah", "MovieSearch", issueReq)
+	_, _, err := githubClient.Issues.Create(ctx, "FS-Bot", "MovieSearch", issueReq)
 	if err != nil {
 		return err
 	}
@@ -112,31 +111,40 @@ _Issue created automatically from a note in Fullstory using the #issue command b
 	return nil
 }
 
-// TODO: Make this function less busy.
-func handleNote(w http.ResponseWriter, req *http.Request) {
+// Determine if an issue already exists for this session.
+func inquireExistingIssue(issueIdentifier string) bool {
+	return false
+}
+
+func handleNote(ctx context.Context, reqBody io.ReadCloser) error {
+	decoder := json.NewDecoder(reqBody)
+	var body FSNoteCreatedReqBody
+	err := decoder.Decode(&body)
+	if err != nil {
+		log.Println("error decoding request body", err)
+		return err
+	}
+
+	if containsIssueCmd(body.Data.Text) {
+		log.Println("True clause, contains #issue")
+		// Create the github issue.
+		if err := createGithubIssue(ctx, fmt.Sprintf("Error in session %s", body.Data.ID), body.Data.ShareLink, body.Data.Text, body.Data.Author); err != nil {
+			log.Println("error creating github issue", err)
+			return err
+		}
+
+	}
+	return nil
+}
+
+func handleNoteRequest(w http.ResponseWriter, req *http.Request) {
 	ctx := context.Background()
 	switch req.Method {
 	case "POST":
-		decoder := json.NewDecoder(req.Body)
-		var body FSNoteCreatedReqBody
-		err := decoder.Decode(&body)
-		if err != nil {
-			log.Panicln("error decoding request body", err)
+		if err := handleNote(ctx, req.Body); err != nil {
+			log.Panicln("error handling note request", err)
 		}
-
-		if containsIssueCmd(body.Data.Text) {
-			log.Println("True clause, contains #issue")
-			// Create the github issue.
-			if err := createGithubIssue(ctx, fmt.Sprintf("Error in session %s", body.Data.ID), body.Data.ShareLink, body.Data.Text, body.Data.Author); err != nil {
-				log.Panicln("error creating github issue", err)
-			}
-			// TODO: Be deliberate about the response codes returned.
-			fmt.Fprintf(w, "Yo that's a cmd")
-		} else {
-			log.Println("False clause doesn't contain #issue")
-			fmt.Fprintf(w, body.EventName)
-		}
-
+		w.WriteHeader(http.StatusOK)
 	default:
 		fmt.Fprintf(w, "This application only supports POST requests, please try again :)\n")
 	}
@@ -145,7 +153,7 @@ func handleNote(w http.ResponseWriter, req *http.Request) {
 
 func envMust(envVar string) (string, error) {
 	if v := os.Getenv(envVar); v == "" {
-		return "", errors.New(fmt.Sprintf("error Enviorment Variable %s cannot be empty", envVar))
+		return "", errors.New(fmt.Sprintf("error enviorment variable %s cannot be empty", envVar))
 	} else {
 		return v, nil
 	}
