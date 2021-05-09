@@ -80,22 +80,24 @@ func createGithubIssue(ctx context.Context, title, sessionUrl, pageUrl, noteText
 
 // Determine if a issue already exists for a specified session ID, if so return it.
 func inquireExistingIssue(ctx context.Context, sessionId string) (*github.Issue, error) {
-	issueList, _, err := githubClient.Issues.ListByRepo(ctx, GithubUsername, GithubRepoName, &github.IssueListByRepoOptions{})
+	issueList, _, err := githubClient.Issues.ListByRepo(ctx, GithubUsername, GithubRepoName, &github.IssueListByRepoOptions{
+		State: "open",
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var existingIssue github.Issue
+	var existingIssue *github.Issue
 
 	for _, issue := range issueList {
 		if strings.Contains(*issue.Title, sessionId) {
-			existingIssue = *issue
+			existingIssue = issue
 		}
 	}
 
 	log.Println("Existing issue", existingIssue)
 
-	return &existingIssue, err
+	return existingIssue, err
 }
 
 func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl, pageUrl, noteText, author string) error {
