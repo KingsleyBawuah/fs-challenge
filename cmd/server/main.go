@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/google/go-github/v35/github"
@@ -27,6 +26,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Oath2 setup
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: githubToken},
 	)
@@ -34,7 +34,7 @@ func main() {
 
 	githubClient = github.NewClient(tc)
 
-	// Set up the HTTP Request Handler.
+	// Set up the HTTP Request Handler and listen for requests.
 	port, err := envMust("PORT")
 	if err != nil {
 		log.Fatal(err)
@@ -62,18 +62,6 @@ func noteRequestHandler(w http.ResponseWriter, req *http.Request) {
 
 }
 
-// containsIssueCmd determines if the note text contains the string #issue which indicates this note should create an issue against the site repo.
-func containsIssueCmd(text string) bool {
-	matchIssueCmd := `\W(\#(issue)+\b)`
-
-	match, err := regexp.MatchString(matchIssueCmd, text)
-	if err != nil {
-		log.Panicln("error determining if note text contains issue command", err)
-	}
-
-	return match
-}
-
 func handleNote(ctx context.Context, reqBody io.ReadCloser) error {
 	decoder := json.NewDecoder(reqBody)
 	var body FSNoteCreatedReqBody
@@ -85,10 +73,10 @@ func handleNote(ctx context.Context, reqBody io.ReadCloser) error {
 	}
 
 	if containsIssueCmd(body.Data.Text) {
-		// Hacky way of grabbing the "sessionID" from the sessionUrl. I'm not the biggest fan of this approach of splitting a string that I don't control.
+		// Hacky way of grabbing what seems to be a "sessionID" from the sessionUrl. I'm not the biggest fan of this approach of splitting a string that I don't control. If Fullstory changed this structure this would break
 		sessionId := strings.Split(body.Data.SessionUrl, "/")[6]
 
-		// Check for an existing issue and comment on it.
+		// Check for an existing issue in the repo and comment on it.
 		potentialExistingIssue, err := inquireExistingIssue(ctx, sessionId)
 		if err != nil {
 			log.Println("error in inquireExistingIssue", err)
@@ -100,7 +88,7 @@ func handleNote(ctx context.Context, reqBody io.ReadCloser) error {
 				return err
 			}
 		} else {
-			// Create the new github issue.
+			// No existing issues in the repo for this sessionID, create a new github issue.
 			if err := createGithubIssue(ctx, fmt.Sprintf("Error in session %s", sessionId), body.Data.SessionUrl, body.Data.PageInfo.PageUrl, body.Data.Text, body.Data.Author); err != nil {
 				log.Println("error creating github issue", err)
 				return err

@@ -62,11 +62,11 @@ func createGithubIssue(ctx context.Context, title, sessionUrl, pageUrl, noteText
 		IsComment:  false,
 	}
 
-	bodyPtr := body.String()
+	bodyString := body.String()
 
 	issueReq := &github.IssueRequest{
 		Title:  &title,
-		Body:   &bodyPtr,
+		Body:   &bodyString,
 		Labels: &labels,
 	}
 
@@ -94,15 +94,10 @@ func inquireExistingIssue(ctx context.Context, sessionId string) (*github.Issue,
 			existingIssue = issue
 		}
 	}
-
-	log.Println("Existing issue", existingIssue)
-
 	return existingIssue, err
 }
 
 func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl, pageUrl, noteText, author string) error {
-	log.Printf("issue struct %+v\\n", issue)
-
 	issueBody := &IssueBody{
 		NoteText:   noteText,
 		SessionUrl: sessionUrl,
@@ -111,17 +106,14 @@ func commentOnExistingIssue(ctx context.Context, issue *github.Issue, sessionUrl
 		IsComment:  true,
 	}
 
-	issueBodyPtr := issueBody.String()
-
-	log.Println("issue number", issue.GetNumber())
+	issueBodyString := issueBody.String()
 
 	_, _, err := githubClient.Issues.CreateComment(ctx, GithubUsername, GithubRepoName, issue.GetNumber(), &github.IssueComment{
-		Body: github.String(issueBodyPtr),
+		Body: github.String(issueBodyString),
 	})
 	if err != nil {
 		log.Println("error creating comment on issue", err)
 		return err
 	}
-	log.Println("issue request func returned")
 	return nil
 }

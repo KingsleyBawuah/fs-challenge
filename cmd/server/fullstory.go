@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"log"
+	"regexp"
+	"time"
+)
 
 // https://developer.fullstory.com/note-created
 type FSNoteCreatedReqBody struct {
@@ -25,4 +29,16 @@ type FSNoteCreatedReqBody struct {
 		} `json:"pageInfo"`
 		NotedTime time.Time `json:"notedTime"`
 	} `json:"data"`
+}
+
+// containsIssueCmd determines if the note text from fullstory contains the string #issue which indicates this note should create an issue against the site repo.
+func containsIssueCmd(text string) bool {
+	matchIssueCmd := `\W(\#(issue)+\b)`
+
+	match, err := regexp.MatchString(matchIssueCmd, text)
+	if err != nil {
+		log.Panicln("error determining if note text contains issue command", err)
+	}
+
+	return match
 }
